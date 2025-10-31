@@ -1,7 +1,4 @@
-# 📘 Proyecto del curso: Lenguajes de Programación  
 # 🩺 Sistema de Gestión de Reservas de Consultas Médicas
-
----
 
 ## 📖 Descripción General
 
@@ -37,7 +34,7 @@ Desarrollar una aplicación multiparadigma en Python que permita gestionar de fo
 | **Funcional** | Uso de funciones puras, `map()`, `filter()`, y `lambda` para el análisis y filtrado de datos. | Filtrado de citas por fecha o especialidad y cálculo de estadísticas. |
 
 ---
-
+## 🧰 Tecnologías y Librerías Utilizadas
 | Tecnología / Librería | Uso principal                                 |
 | ---------------------- | --------------------------------------------- |
 | **Python 3.12+**       | Lenguaje de programación principal.           |
