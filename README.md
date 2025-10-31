@@ -1,4 +1,4 @@
-### 📘 Proyecto del curso: Lenguajes de Programación  
+# 📘 Proyecto del curso: Lenguajes de Programación  
 # 🩺 Sistema de Gestión de Reservas de Consultas Médicas
 
 ---
