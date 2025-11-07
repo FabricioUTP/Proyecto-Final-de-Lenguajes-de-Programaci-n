@@ -39,7 +39,7 @@ Desarrollar un software que permita gestionar pacientes, médicos y citas médic
 
 ## 📂 Arquitectura del Proyecto
 
-`
+```bash
 /Proyecto_Gestion_Medica
 │
 ├─ main.py # Punto de entrada del sistema
@@ -60,7 +60,7 @@ Desarrollar un software que permita gestionar pacientes, médicos y citas médic
 └─ ui/
 ├─ menu_principal.py
 └─ menu_submodulos.py
-`
+```
 
 ---
 
