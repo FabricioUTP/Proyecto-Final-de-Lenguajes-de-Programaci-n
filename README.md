@@ -48,40 +48,46 @@ Desarrollar un software que permita gestionar pacientes, médicos y citas médic
 │ └─ database_config.py # Conexión MySQL
 │
 ├─ models/
-│ ├─ paciente.py # Clase Paciente (POO)
+│ ├─ cita.py # Clase Cita (POO)
+│ ├─ database.py # Clase Database (POO)
+│ ├─ gestor_citas.py # Clase GestorCitas (POO)
 │ ├─ medico.py # Clase Medico (POO)
-│ └─ cita.py # Clase Cita (POO)
+│ └─ paciente.py # Clase Paciente (POO)
 │
 ├─ services/
+│ ├─ cita_service.py # CRUD + lógica
+│ ├─ medico_service.py # CRUD + lógica
 │ ├─ paciente_service.py # CRUD + lógica
-│ ├─ medico_service.py
-│ └─ cita_service.py
+│ └─ reportes_service.py # pandas + matplotlib
 │
-└─ ui/
-├─ menu_principal.py
-└─ menu_submodulos.py
+├─ ui/
+│ ├─ cita_ui.py # CLI
+│ ├─ medico_ui.py # CLI
+│ ├─ menus.py # CLI
+│ ├─ paciente_ui.py # CLI
+│ └─ reportes.ui.py # CLI
 ```
 
 ---
 
        ┌────────────────────────┐
        │        UI (CLI)        │
-       │ Menús / interacción    │
+       │   Menús / interacción  │
        └───────────▲────────────┘
                    │
        ┌───────────┴────────────┐
-       │       SERVICES          │
-       │ Validaciones / lógica   │
+       │        SERVICES        │
+       │ Validaciones / lógica  │
        └───────────▲────────────┘
                    │
        ┌───────────┴────────────┐
-       │        MODELS           │
-       │ Clases Paciente, etc.   │
+       │         MODELS         │
+       │ Clases Paciente, etc.  │
        └───────────▲────────────┘
                    │
        ┌───────────┴────────────┐
-       │     BASE DE DATOS      │
-       │       MySQL            │
+       │      BASE DE DATOS     │
+       │         MySQL          │
        └────────────────────────┘
 
 ---
