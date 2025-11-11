@@ -61,17 +61,17 @@ Desarrollar un software que permita gestionar pacientes, médicos y citas médic
 │ └─ reportes_service.py # pandas + matplotlib
 │
 ├─ ui/
-│ ├─ cita_ui.py # CLI
-│ ├─ medico_ui.py # CLI
-│ ├─ menus.py # CLI
-│ ├─ paciente_ui.py # CLI
-│ └─ reportes.ui.py # CLI
+│ ├─ cita_ui.py # UI
+│ ├─ medico_ui.py # UI
+│ ├─ menus.py # UI
+│ ├─ paciente_ui.py # UI
+│ └─ reportes.ui.py # UI
 ```
 
 ---
 
        ┌────────────────────────┐
-       │        UI (CLI)        │
+       │           UI           │
        │   Menús / interacción  │
        └───────────▲────────────┘
                    │
