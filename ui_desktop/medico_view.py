@@ -3,7 +3,6 @@ from tkinter import ttk, messagebox
 
 class MedicoView(tk.Toplevel):
     """Ventana gráfica para gestionar médicos con Tkinter"""
-
     def __init__(self, parent, medico_service):
         super().__init__(parent)
         self.title("Gestión de Médicos")
@@ -11,32 +10,11 @@ class MedicoView(tk.Toplevel):
         self.resizable(False, False)
         self.medico_service = medico_service
 
+        self.grab_set()
+        self.focus()
+
         # === Título ===
         ttk.Label(self, text="🩺 Gestión de Médicos", font=("Arial", 16, "bold")).pack(pady=10)
-
-        # === Sección de búsqueda ===
-        search_frame = ttk.LabelFrame(self, text="🔍 Buscar Médico")
-        search_frame.pack(fill="x", padx=20, pady=10)
-
-        # Combobox para elegir tipo de búsqueda
-        ttk.Label(search_frame, text="Buscar por:").grid(row=0, column=0, padx=5, pady=5)
-        self.tipo_busqueda = ttk.Combobox(
-            search_frame,
-            values=["Nombre", "Especialidad", "Gmail", "Teléfono"],
-            state="readonly",
-            width=20
-        )
-        self.tipo_busqueda.current(0)
-        self.tipo_busqueda.grid(row=0, column=1, padx=5, pady=5)
-
-        # Campo de texto para el valor
-        ttk.Label(search_frame, text="Valor:").grid(row=0, column=2, padx=5, pady=5)
-        self.valor_busqueda = ttk.Entry(search_frame, width=40)
-        self.valor_busqueda.grid(row=0, column=3, padx=5, pady=5)
-
-        # Botones
-        ttk.Button(search_frame, text="Buscar", command=self.buscar_medico).grid(row=0, column=4, padx=10, pady=5)
-        ttk.Button(search_frame, text="Mostrar Todos", command=self.cargar_medicos).grid(row=0, column=5, padx=10, pady=5)
 
         # === Formulario ===
         form_frame = ttk.LabelFrame(self, text="Registrar / Actualizar Médico")
@@ -74,6 +52,27 @@ class MedicoView(tk.Toplevel):
         ttk.Button(btn_frame, text="Eliminar", command=self.eliminar_medico).grid(row=0, column=2, padx=5)
         ttk.Button(btn_frame, text="Limpiar", command=self.limpiar_campos).grid(row=0, column=3, padx=5)
 
+        # === Sección de búsqueda ===
+        search_frame = ttk.LabelFrame(self, text="🔍 Buscar Médico")
+        search_frame.pack(fill="x", padx=20, pady=10)
+
+        ttk.Label(search_frame, text="Buscar por:").grid(row=0, column=0, padx=5, pady=5)
+        self.tipo_busqueda = ttk.Combobox(
+            search_frame,
+            values=["Nombre", "Especialidad", "Gmail", "Teléfono"],
+            state="readonly",
+            width=20
+        )
+        self.tipo_busqueda.current(0)
+        self.tipo_busqueda.grid(row=0, column=1, padx=5, pady=5)
+
+        ttk.Label(search_frame, text="Valor:").grid(row=0, column=2, padx=5, pady=5)
+        self.valor_busqueda = ttk.Entry(search_frame, width=40)
+        self.valor_busqueda.grid(row=0, column=3, padx=5, pady=5)
+
+        ttk.Button(search_frame, text="Buscar", command=self.buscar_medico).grid(row=0, column=4, padx=10, pady=5)
+        ttk.Button(search_frame, text="Mostrar Todos", command=self.cargar_medicos).grid(row=0, column=5, padx=10, pady=5)
+
         # === Tabla ===
         self.tabla = ttk.Treeview(self, columns=("ID", "Nombre", "Especialidad", "Teléfono", "Email"), show="headings")
         for col in ("ID", "Nombre", "Especialidad", "Teléfono", "Email"):
@@ -85,15 +84,28 @@ class MedicoView(tk.Toplevel):
 
         self.cargar_medicos()
 
-    # === CRUD ===
+    # === CRUD y Validaciones ===
     def registrar_medico(self):
         nombre = self.nombre.get().strip()
         especialidad = self.especialidad.get().strip()
         telefono = self.telefono.get().strip()
         email = self.email.get().strip()
 
+        # Validaciones
         if not nombre:
             messagebox.showwarning("Atención", "El nombre es obligatorio.")
+            return
+        if not email:
+            messagebox.showwarning("Atención", "El email es obligatorio.")
+            return
+        if not email.lower().endswith("@gmail.com"):
+            messagebox.showwarning("Atención", "El email debe terminar en '@gmail.com'.")
+            return
+        if not telefono:
+            messagebox.showwarning("Atención", "El teléfono es obligatorio.")
+            return
+        if not (telefono.isdigit() and len(telefono) == 9 and telefono.startswith("9")):
+            messagebox.showwarning("Atención", "El teléfono debe comenzar con 9 y tener 9 dígitos.")
             return
 
         try:
@@ -107,29 +119,6 @@ class MedicoView(tk.Toplevel):
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
-    def cargar_medicos(self):
-        for item in self.tabla.get_children():
-            self.tabla.delete(item)
-        medicos = self.medico_service.obtener_todos_medicos()
-        for m in medicos:
-            self.tabla.insert("", "end", values=(m.id, m.nombre, m.especialidad or "N/A", m.telefono or "N/A", m.email or "N/A"))
-
-    def seleccionar_medico(self, event):
-        seleccion = self.tabla.focus()
-        if not seleccion:
-            return
-        valores = self.tabla.item(seleccion, "values")
-        if valores:
-            self.id_seleccionado = int(valores[0])
-            self.nombre.delete(0, tk.END)
-            self.telefono.delete(0, tk.END)
-            self.email.delete(0, tk.END)
-            
-            self.nombre.insert(0, valores[1])
-            self.especialidad.set(valores[2])
-            self.telefono.insert(0, valores[3])
-            self.email.insert(0, valores[4])
-
     def actualizar_medico(self):
         if not hasattr(self, "id_seleccionado"):
             messagebox.showwarning("Atención", "Seleccione un médico de la lista.")
@@ -141,6 +130,17 @@ class MedicoView(tk.Toplevel):
             "telefono": self.telefono.get().strip(),
             "email": self.email.get().strip()
         }
+
+        # Validaciones
+        if not campos["nombre"] or not campos["email"] or not campos["telefono"]:
+            messagebox.showwarning("Atención", "Todos los campos son obligatorios.")
+            return
+        if not campos["email"].lower().endswith("@gmail.com"):
+            messagebox.showwarning("Atención", "El email debe terminar en '@gmail.com'.")
+            return
+        if not (campos["telefono"].isdigit() and len(campos["telefono"]) == 9 and campos["telefono"].startswith("9")):
+            messagebox.showwarning("Atención", "El teléfono debe comenzar con 9 y tener 9 dígitos.")
+            return
 
         try:
             actualizado = self.medico_service.actualizar_medico(self.id_seleccionado, **campos)
@@ -170,14 +170,12 @@ class MedicoView(tk.Toplevel):
     def buscar_medico(self):
         tipo = self.tipo_busqueda.get()
         valor = self.valor_busqueda.get().strip()
-
         if not valor:
             messagebox.showwarning("Atención", "Ingrese un valor para buscar.")
             return
 
         try:
             resultados = []
-
             if tipo == "Nombre":
                 resultados = self.medico_service.buscar_medicos_por_nombre(valor)
             elif tipo == "Especialidad":
@@ -191,27 +189,43 @@ class MedicoView(tk.Toplevel):
                 if medico:
                     resultados = [medico]
 
-            # Limpiar tabla antes de mostrar resultados
+            # Limpiar tabla
             for item in self.tabla.get_children():
                 self.tabla.delete(item)
 
-            # Si no hay resultados
             if not resultados:
-                self.tabla.insert("", "end", values=("", "⚠️ No se encontraron médicos que coincidan con la búsqueda.", "", "", ""))
+                self.tabla.insert("", "end", values=("", "⚠️ No se encontraron médicos.", "", "", ""))
                 return
 
-            # Mostrar resultados
             for m in resultados:
-                self.tabla.insert("", "end", values=(
-                    m.id,
-                    m.nombre,
-                    m.especialidad or "N/A",
-                    m.telefono or "N/A",
-                    m.email or "N/A"
-                ))
-
+                self.tabla.insert("", "end", values=(m.id, m.nombre, m.especialidad or "N/A",
+                                                     m.telefono or "N/A", m.email or "N/A"))
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
+    def seleccionar_medico(self, event):
+        seleccion = self.tabla.focus()
+        if not seleccion:
+            return
+        valores = self.tabla.item(seleccion, "values")
+        if valores:
+            self.id_seleccionado = int(valores[0])
+            self.nombre.delete(0, tk.END)
+            self.telefono.delete(0, tk.END)
+            self.email.delete(0, tk.END)
+            
+            self.nombre.insert(0, valores[1])
+            self.especialidad.set(valores[2])
+            self.telefono.insert(0, valores[3])
+            self.email.insert(0, valores[4])
+
+    def cargar_medicos(self):
+        for item in self.tabla.get_children():
+            self.tabla.delete(item)
+        medicos = self.medico_service.obtener_todos_medicos()
+        for m in medicos:
+            self.tabla.insert("", "end", values=(m.id, m.nombre, m.especialidad or "N/A",
+                                                 m.telefono or "N/A", m.email or "N/A"))
 
     def limpiar_campos(self):
         self.nombre.delete(0, tk.END)

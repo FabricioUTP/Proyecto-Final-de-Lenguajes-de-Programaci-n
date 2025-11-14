@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
+from tkcalendar import DateEntry  # Importamos el selector de fechas
 
 class PacienteView(tk.Toplevel):
     """Ventana gráfica para gestionar pacientes con Tkinter"""
@@ -10,6 +11,9 @@ class PacienteView(tk.Toplevel):
         self.geometry("850x600")
         self.resizable(False, False)
         self.paciente_service = paciente_service
+
+        self.grab_set()
+        self.focus()
 
         # === Título ===
         ttk.Label(self, text="👥 Gestión de Pacientes", font=("Arial", 16, "bold")).pack(pady=10)
@@ -21,18 +25,20 @@ class PacienteView(tk.Toplevel):
         ttk.Label(form_frame, text="Nombre:").grid(row=0, column=0, padx=5, pady=5)
         ttk.Label(form_frame, text="Email:").grid(row=1, column=0, padx=5, pady=5)
         ttk.Label(form_frame, text="Teléfono:").grid(row=2, column=0, padx=5, pady=5)
-        ttk.Label(form_frame, text="Fecha Nacimiento (YYYY-MM-DD):").grid(row=3, column=0, padx=5, pady=5)
+        ttk.Label(form_frame, text="Fecha Nacimiento:").grid(row=3, column=0, padx=5, pady=5)
 
         self.nombre = ttk.Entry(form_frame, width=35)
         self.email = ttk.Entry(form_frame, width=35)
         self.telefono = ttk.Entry(form_frame, width=35)
-        self.fecha_nacimiento = ttk.Entry(form_frame, width=35)
+        self.fecha_nacimiento = DateEntry(form_frame, width=33, background='darkblue',
+                                          foreground='white', date_pattern='yyyy-mm-dd')
 
         self.nombre.grid(row=0, column=1, padx=5, pady=5)
         self.email.grid(row=1, column=1, padx=5, pady=5)
         self.telefono.grid(row=2, column=1, padx=5, pady=5)
         self.fecha_nacimiento.grid(row=3, column=1, padx=5, pady=5)
 
+        # === Botones ===
         btn_frame = ttk.Frame(form_frame)
         btn_frame.grid(row=4, column=0, columnspan=2, pady=10)
         ttk.Button(btn_frame, text="Registrar", command=self.registrar_paciente).grid(row=0, column=0, padx=5)
@@ -67,17 +73,33 @@ class PacienteView(tk.Toplevel):
 
         self.cargar_pacientes()
 
-    # === Funciones ===
+    # === Funciones CRUD y validaciones ===
     def registrar_paciente(self):
         nombre = self.nombre.get().strip()
         email = self.email.get().strip()
         telefono = self.telefono.get().strip()
-        fecha_nac = self.fecha_nacimiento.get().strip()
+        fecha_nac = self.fecha_nacimiento.get_date().strftime("%Y-%m-%d")
 
+        # === VALIDACIONES ===
         if not nombre:
             messagebox.showwarning("Atención", "El nombre es obligatorio.")
             return
 
+        if not email:
+            messagebox.showwarning("Atención", "El email es obligatorio.")
+            return
+        if not email.lower().endswith("@gmail.com"):
+            messagebox.showwarning("Atención", "El email debe terminar en '@gmail.com'.")
+            return
+
+        if not telefono:
+            messagebox.showwarning("Atención", "El teléfono es obligatorio.")
+            return
+        if not (telefono.isdigit() and len(telefono) == 9 and telefono.startswith("9")):
+            messagebox.showwarning("Atención", "El teléfono debe comenzar con 9 y tener 9 dígitos.")
+            return
+
+        # === CREAR PACIENTE ===
         try:
             paciente = self.paciente_service.crear_paciente(nombre, email, telefono, fecha_nac)
             if paciente:
@@ -89,31 +111,6 @@ class PacienteView(tk.Toplevel):
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
-    def cargar_pacientes(self):
-        for item in self.tabla.get_children():
-            self.tabla.delete(item)
-        pacientes = self.paciente_service.obtener_todos_pacientes()
-        for p in pacientes:
-            self.tabla.insert("", "end", values=(p.id, p.nombre, p.email or "N/A", p.telefono or "N/A", p.fecha_nacimiento or "N/A"))
-
-    def seleccionar_paciente(self, event):
-        """Llena los campos al seleccionar un paciente de la tabla"""
-        seleccion = self.tabla.focus()
-        if not seleccion:
-            return
-        valores = self.tabla.item(seleccion, "values")
-        if valores:
-            self.id_seleccionado = int(valores[0])
-            self.nombre.delete(0, tk.END)
-            self.email.delete(0, tk.END)
-            self.telefono.delete(0, tk.END)
-            self.fecha_nacimiento.delete(0, tk.END)
-
-            self.nombre.insert(0, valores[1])
-            self.email.insert(0, valores[2])
-            self.telefono.insert(0, valores[3])
-            self.fecha_nacimiento.insert(0, valores[4])
-
     def actualizar_paciente(self):
         if not hasattr(self, "id_seleccionado"):
             messagebox.showwarning("Atención", "Seleccione un paciente de la lista.")
@@ -123,8 +120,19 @@ class PacienteView(tk.Toplevel):
             "nombre": self.nombre.get().strip(),
             "email": self.email.get().strip(),
             "telefono": self.telefono.get().strip(),
-            "fecha_nacimiento": self.fecha_nacimiento.get().strip()
+            "fecha_nacimiento": self.fecha_nacimiento.get_date().strftime("%Y-%m-%d")
         }
+
+        # Validaciones similares al registrar
+        if not campos["nombre"] or not campos["email"] or not campos["telefono"]:
+            messagebox.showwarning("Atención", "Todos los campos son obligatorios.")
+            return
+        if not campos["email"].lower().endswith("@gmail.com"):
+            messagebox.showwarning("Atención", "El email debe terminar en '@gmail.com'.")
+            return
+        if not (campos["telefono"].isdigit() and len(campos["telefono"]) == 9 and campos["telefono"].startswith("9")):
+            messagebox.showwarning("Atención", "El teléfono debe comenzar con 9 y tener 9 dígitos.")
+            return
 
         try:
             actualizado = self.paciente_service.actualizar_paciente(self.id_seleccionado, **campos)
@@ -153,7 +161,6 @@ class PacienteView(tk.Toplevel):
     def buscar_paciente(self):
         tipo = self.tipo_busqueda.get()
         valor = self.valor_busqueda.get().strip()
-
         if not valor:
             messagebox.showwarning("Atención", "Ingrese un valor de búsqueda.")
             return
@@ -177,10 +184,9 @@ class PacienteView(tk.Toplevel):
             if not resultados:
                 messagebox.showinfo("Sin resultados", "No se encontraron pacientes con ese criterio.")
                 return
-
             for p in resultados:
-                self.tabla.insert("", "end", values=(p.id, p.nombre, p.email or "N/A", p.telefono or "N/A", p.fecha_nacimiento or "N/A"))
-
+                self.tabla.insert("", "end", values=(p.id, p.nombre, p.email or "N/A",
+                                                     p.telefono or "N/A", p.fecha_nacimiento or "N/A"))
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
@@ -212,10 +218,34 @@ class PacienteView(tk.Toplevel):
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
+    def seleccionar_paciente(self, event):
+        seleccion = self.tabla.focus()
+        if not seleccion:
+            return
+        valores = self.tabla.item(seleccion, "values")
+        if valores:
+            self.id_seleccionado = int(valores[0])
+            self.nombre.delete(0, tk.END)
+            self.email.delete(0, tk.END)
+            self.telefono.delete(0, tk.END)
+            self.fecha_nacimiento.set_date(valores[4])  # Asignar fecha al DateEntry
+
+            self.nombre.insert(0, valores[1])
+            self.email.insert(0, valores[2])
+            self.telefono.insert(0, valores[3])
+
+    def cargar_pacientes(self):
+        for item in self.tabla.get_children():
+            self.tabla.delete(item)
+        pacientes = self.paciente_service.obtener_todos_pacientes()
+        for p in pacientes:
+            self.tabla.insert("", "end", values=(p.id, p.nombre, p.email or "N/A",
+                                                 p.telefono or "N/A", p.fecha_nacimiento or "N/A"))
+
     def limpiar_campos(self):
         self.nombre.delete(0, tk.END)
         self.email.delete(0, tk.END)
         self.telefono.delete(0, tk.END)
-        self.fecha_nacimiento.delete(0, tk.END)
+        self.fecha_nacimiento.set_date(datetime.today())
         if hasattr(self, "id_seleccionado"):
             del self.id_seleccionado

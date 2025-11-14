@@ -20,9 +20,9 @@ class Paciente:
         """Guarda el paciente en la base de datos"""
         try:
             if self.id is None:
-                query = """INSERT INTO pacientes (nombre, email, telefono, fecha_nacimiento) 
-                           VALUES (%s, %s, %s, %s)"""
-                params = (self.nombre, self.email, self.telefono, self.fecha_nacimiento)
+                query = """INSERT INTO pacientes (id,nombre, email, telefono, fecha_nacimiento) 
+                           VALUES (%s,%s, %s, %s, %s)"""
+                params = (self.id, self.nombre, self.email, self.telefono, self.fecha_nacimiento)
                 result = db.execute_query(query, params)
                 if result:
                     self.id = result

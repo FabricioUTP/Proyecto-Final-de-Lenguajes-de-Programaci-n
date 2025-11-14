@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from tkcalendar import DateEntry
+from datetime import datetime
 
 class CitaView(tk.Toplevel):
     """Ventana gráfica para gestionar citas"""
@@ -15,6 +17,9 @@ class CitaView(tk.Toplevel):
         self.paciente_service = servicios["paciente_service"]
         self.medico_service = servicios["medico_service"]
 
+        self.grab_set()
+        self.focus()
+
         # === FORMULARIO ===
         form_frame = ttk.LabelFrame(self, text="Registrar Cita", padding=10)
         form_frame.pack(fill="x", padx=20, pady=10)
@@ -27,7 +32,7 @@ class CitaView(tk.Toplevel):
         self.pacientes_dict = {p.nombre: p.id for p in pacientes_lista}
         self.medicos_dict = {m.nombre: m.id for m in medicos_lista}
 
-        # Listas de nombres (para mostrar en los combobox)
+        # Listas de nombres (para combobox)
         pacientes = list(self.pacientes_dict.keys())
         medicos = list(self.medicos_dict.keys())
 
@@ -40,8 +45,8 @@ class CitaView(tk.Toplevel):
         self.medico_cb = ttk.Combobox(form_frame, values=medicos, state="readonly", width=40)
         self.medico_cb.grid(row=1, column=1, pady=5)
 
-        ttk.Label(form_frame, text="Fecha (YYYY-MM-DD):").grid(row=2, column=0, sticky="w", padx=5, pady=5)
-        self.fecha_entry = ttk.Entry(form_frame, width=42)
+        ttk.Label(form_frame, text="Fecha de la cita:").grid(row=2, column=0, sticky="w", padx=5, pady=5)
+        self.fecha_entry = DateEntry(form_frame, width=42, date_pattern="yyyy-mm-dd", mindate=datetime.today())
         self.fecha_entry.grid(row=2, column=1, pady=5)
 
         ttk.Label(form_frame, text="Motivo de la cita:").grid(row=3, column=0, sticky="w", padx=5, pady=5)
@@ -50,6 +55,7 @@ class CitaView(tk.Toplevel):
 
         ttk.Button(form_frame, text="Registrar Cita", command=self.registrar_cita).grid(row=4, columnspan=2, pady=10)
 
+    
         # === FILTROS ===
         filtro_frame = ttk.LabelFrame(self, text="Filtrar Citas", padding=10)
         filtro_frame.pack(fill="x", padx=20, pady=10)
@@ -123,53 +129,42 @@ class CitaView(tk.Toplevel):
 
         ttk.Button(
             acciones_frame,
-    text="Cancelar Cita",
-    command=self.cancelar_cita_ui
-).grid(row=0, column=1, padx=5)
+            text="Cancelar Cita",
+            command=self.cancelar_cita_ui
+            ).grid(row=0, column=1, padx=5)
 
 
         # === TABLA DE CITAS ===
         tabla_frame = ttk.LabelFrame(self, text="Citas Registradas", padding=10)
         tabla_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
-        columnas = ("id", "paciente", "medico", "fecha", "motivo","estado")
+        columnas = ("id", "paciente", "medico", "fecha", "motivo", "estado")
         self.tabla = ttk.Treeview(tabla_frame, columns=columnas, show="headings", height=12)
 
-        self.tabla.heading("id", text="ID")
-        self.tabla.heading("paciente", text="Paciente")
-        self.tabla.heading("medico", text="Médico")
-        self.tabla.heading("fecha", text="Fecha")
-        self.tabla.heading("motivo", text="Motivo")
-        self.tabla.heading("estado", text="Estado")
-
-        self.tabla.column("id", width=60, anchor="center")
-        self.tabla.column("paciente", width=180)
-        self.tabla.column("medico", width=180)
-        self.tabla.column("fecha", width=100, anchor="center")
-        self.tabla.column("motivo", width=100)
-        self.tabla.column("estado", width=100)
+        for col, width in zip(columnas, [60, 180, 180, 100, 100, 100]):
+            self.tabla.heading(col, text=col.capitalize())
+            self.tabla.column(col, width=width, anchor="center" if col in ["id","fecha","estado"] else "w")
 
         self.tabla.pack(fill="both", expand=True)
 
         self.cargar_citas()
-
 
     # === FUNCIONES ===
     def registrar_cita(self):
         try:
             paciente_nombre = self.paciente_cb.get()
             medico_nombre = self.medico_cb.get()
-            fecha = self.fecha_entry.get().strip()
+            fecha_str = self.fecha_entry.get_date().strftime("%Y-%m-%d")
             motivo = self.motivo_entry.get().strip()
 
-            if not paciente_nombre or not medico_nombre or not fecha or not motivo:
+            # Validaciones
+            if not paciente_nombre or not medico_nombre or not fecha_str or not motivo:
                 messagebox.showwarning("Atención", "Complete todos los campos.")
                 return
 
-            # Obtener los IDs reales desde los diccionarios
+            # Verificar paciente y médico
             paciente_id = self.pacientes_dict.get(paciente_nombre)
             medico_id = self.medicos_dict.get(medico_nombre)
-
             if not paciente_id:
                 messagebox.showerror("Error", "❌ Paciente no encontrado.")
                 return
@@ -178,14 +173,13 @@ class CitaView(tk.Toplevel):
                 return
 
             # Registrar cita
-            self.cita_service.crear_cita(paciente_id, medico_id, fecha, motivo)
+            self.cita_service.crear_cita(paciente_id, medico_id, fecha_str, motivo)
             messagebox.showinfo("Éxito", "✅ Cita registrada correctamente.")
             self.cargar_citas()
 
             # Limpiar campos
             self.paciente_cb.set("")
             self.medico_cb.set("")
-            self.fecha_entry.delete(0, tk.END)
             self.motivo_entry.delete(0, tk.END)
 
         except Exception as e:
@@ -196,24 +190,45 @@ class CitaView(tk.Toplevel):
             self.tabla.delete(fila)
 
         citas = self.cita_service.obtener_todas_citas()
-
         for c in citas:
-            # Obtenemos los nombres de paciente y médico
             medico = self.medico_service.obtener_medico_por_id(c.medico_id)
             paciente = self.paciente_service.obtener_paciente_por_id(c.paciente_id)
-
             self.tabla.insert(
                 "",
                 "end",
-                values=(
-                    c.id,
-                    paciente,
-                    medico,
-                    c.fecha_hora,
-                    c.motivo,
-                    c.estado   
-                )
+                values=(c.id, paciente.nombre, medico.nombre, c.fecha_hora, c.motivo, c.estado)
             )
+
+    def obtener_cita_seleccionada(self):
+        seleccion = self.tabla.selection()
+        if not seleccion:
+            return None
+        valores = self.tabla.item(seleccion[0], "values")
+        return int(valores[0])
+
+    def cancelar_cita_ui(self):
+        cita_id = self.obtener_cita_seleccionada()
+        if not cita_id:
+            messagebox.showwarning("Atención", "Seleccione una cita.")
+            return
+        if messagebox.askyesno("Confirmar", "¿Estás seguro de cancelar esta cita?"):
+            if self.cita_service.cancelar_cita(cita_id):
+                messagebox.showinfo("Éxito", "La cita fue cancelada.")
+                self.cargar_citas()
+            else:
+                messagebox.showerror("Error", "No se pudo cancelar la cita.")
+
+    def marcar_completada(self):
+        cita_id = self.obtener_cita_seleccionada()
+        if not cita_id:
+            messagebox.showwarning("Atención", "Seleccione una cita.")
+            return
+        if messagebox.askyesno("Confirmar", "¿Marcar la cita como completada?"):
+            if self.cita_service.completar_cita(cita_id):
+                messagebox.showinfo("Éxito", "La cita fue marcada como completada.")
+                self.cargar_citas()
+            else:
+                messagebox.showerror("Error", "No se pudo actualizar el estado.")
 
     def buscar_por_estado(self):
         estado = self.estado_cb.get()
@@ -411,13 +426,3 @@ class CitaView(tk.Toplevel):
 
         elif tipo == "Rango":
             self.buscar_por_rango()
-
-
-
-
-
-
-
-
-
-
