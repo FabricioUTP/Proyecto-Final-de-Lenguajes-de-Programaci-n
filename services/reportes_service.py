@@ -141,54 +141,28 @@ class ReportesService:
             plt.tight_layout()
             plt.show()
     
-    def generar_reporte_ocupacion_medicos(self, fecha_inicio: str = None, fecha_fin: str = None):
-        """Genera reporte de ocupación de médicos"""
-        if not fecha_inicio or not fecha_fin:
-            # Usar el último mes por defecto
-            fecha_fin = datetime.now().strftime("%Y-%m-%d")
-            fecha_inicio = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
-        
-        medicos = Medico.obtener_todos(self.db)
-        
-        if not medicos:
-            print("📭 No hay médicos para generar reporte")
-            return
-        
-        print("\n" + "="*60)
-        print("📊 REPORTE DE OCUPACIÓN DE MÉDICOS")
-        print(f"📅 Período: {fecha_inicio} a {fecha_fin}")
-        print("="*60)
-        
-        datos_ocupacion = []
-        for medico in medicos:
-            porcentaje = self.cita_service.calcular_porcentaje_ocupacion(
-                medico.id, fecha_inicio, fecha_fin
-            )
-            datos_ocupacion.append({
-                'Médico': medico.nombre,
-                'Especialidad': medico.especialidad or 'N/A',
-                'Ocupación (%)': porcentaje
-            })
-            print(f"👨‍⚕️  {medico.nombre} ({medico.especialidad}): {porcentaje:.1f}%")
-        
-        # Crear DataFrame para análisis adicional
-        df_ocupacion = pd.DataFrame(datos_ocupacion)
-        
-        if not df_ocupacion.empty:
-            # Gráfico de ocupación
-            plt.figure(figsize=(12, 6))
-            plt.bar(df_ocupacion['Médico'], df_ocupacion['Ocupación (%)'], 
-                   color=['green' if x < 70 else 'orange' if x < 90 else 'red' 
-                         for x in df_ocupacion['Ocupación (%)']])
-            plt.title(f'Ocupación de Médicos ({fecha_inicio} a {fecha_fin})', 
-                     fontsize=16, fontweight='bold')
-            plt.xlabel('Médico', fontsize=12)
-            plt.ylabel('Porcentaje de Ocupación (%)', fontsize=12)
-            plt.xticks(rotation=45, ha='right')
-            plt.ylim(0, 100)
-            plt.grid(axis='y', alpha=0.3)
-            plt.tight_layout()
-            plt.show()
+    def calcular_porcentaje_ocupacion(self, medico_id, fecha_inicio, fecha_fin):
+        # Convertir ambos a tipo date
+        fecha_inicio_dt = datetime.strptime(fecha_inicio, "%Y-%m-%d").date()
+        fecha_fin_dt = datetime.strptime(fecha_fin, "%Y-%m-%d").date()
+
+        # Obtener todas las citas del médico
+        citas_medico = Cita.obtener_por_medico(self.db, medico_id)
+
+        # Filtrar por rango de fechas usando .date()
+        citas_en_rango = [
+            c for c in citas_medico
+            if fecha_inicio_dt <= c.fecha_hora.date() <= fecha_fin_dt
+        ]
+
+        total_citas = len(citas_en_rango)
+        capacidad_maxima = 30  # Ejemplo
+
+        if capacidad_maxima == 0:
+            return 0
+
+        return (total_citas / capacidad_maxima) * 100
+
     
     def generar_reporte_tendencias_mensuales(self):
         """Genera reporte de tendencias mensuales de citas"""

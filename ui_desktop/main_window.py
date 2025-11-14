@@ -36,7 +36,7 @@ class MainWindow:
         CitaView(self.root, self.servicios)
 
     def abrir_reportes(self):
-        ReportesView(self.root, self.servicios['reportes_service'])
+        ReporteView(self.root, self.servicios['reportes_service'])
 
     def salir(self):
         if messagebox.askyesno("Salir", "¿Seguro que deseas salir del sistema?"):
