@@ -141,27 +141,63 @@ class ReportesService:
             plt.tight_layout()
             plt.show()
     
-    def calcular_porcentaje_ocupacion(self, medico_id, fecha_inicio, fecha_fin):
-        # Convertir ambos a tipo date
+    def calcular_porcentaje_ocupacion_todos(self, fecha_inicio, fecha_fin, mostrar_grafico=True):
+        print("\n" + "="*60)
+        print("📊 PORCENTAJE DE OCUPACIÓN POR MÉDICO EN EL ULTIMO MES")
+        print("="*60)
+        print(f"📅 Fecha inicio: {fecha_inicio}")
+        print(f"📅 Fecha fin:    {fecha_fin}")
+        print("-"*60)
+
         fecha_inicio_dt = datetime.strptime(fecha_inicio, "%Y-%m-%d").date()
         fecha_fin_dt = datetime.strptime(fecha_fin, "%Y-%m-%d").date()
 
-        # Obtener todas las citas del médico
-        citas_medico = Cita.obtener_por_medico(self.db, medico_id)
+        # 1️⃣ Obtener todos los médicos
+        medicos = Medico.listar_todos(self.db)
 
-        # Filtrar por rango de fechas usando .date()
-        citas_en_rango = [
-            c for c in citas_medico
-            if fecha_inicio_dt <= c.fecha_hora.date() <= fecha_fin_dt
-        ]
+        resultados = []  # para gráfico
 
-        total_citas = len(citas_en_rango)
-        capacidad_maxima = 30  # Ejemplo
+        for medico in medicos:
+            citas = Cita.obtener_por_medico(self.db, medico.id)
 
-        if capacidad_maxima == 0:
-            return 0
+            # Filtrar citas por rango
+            citas_en_rango = [
+                c for c in citas 
+                if fecha_inicio_dt <= c.fecha_hora.date() <= fecha_fin_dt
+            ]
 
-        return (total_citas / capacidad_maxima) * 100
+            total_citas = len(citas_en_rango)
+            capacidad_maxima = 30
+
+            porcentaje = (total_citas / capacidad_maxima) * 100 if capacidad_maxima else 0
+
+            print(f"👨‍⚕️ Médico: {medico.nombre} ({medico.id})")
+            print(f"   📝 Total de citas: {total_citas}")
+            print(f"   📈 Ocupación: {porcentaje:.2f}%")
+            print("-"*60)
+
+            # Guardamos para el gráfico
+            resultados.append({
+                "medico": medico.nombre,
+                "porcentaje": porcentaje
+            })
+
+        # 2️⃣ Mostrar gráfico si se pidió
+        if mostrar_grafico and resultados:
+            df = pd.DataFrame(resultados)
+
+            plt.figure(figsize=(12, 6))
+            plt.bar(df["medico"], df["porcentaje"], color="lightgreen", edgecolor="black")
+            plt.title("Porcentaje de Ocupación por Médico", fontsize=16, fontweight='bold')
+            plt.xlabel("Médico", fontsize=12)
+            plt.ylabel("Porcentaje de Ocupación (%)", fontsize=12)
+            plt.xticks(rotation=45, ha='right')
+            plt.grid(axis='y', alpha=0.3)
+            plt.tight_layout()
+            plt.show()
+
+        return resultados
+
 
     
     def generar_reporte_tendencias_mensuales(self):
@@ -206,7 +242,7 @@ class ReportesService:
         self.generar_reporte_citas_por_especialidad(mostrar_grafico=True)
         
         # 4. Reporte de ocupación
-        self.generar_reporte_ocupacion_medicos()
+        self.calcular_porcentaje_ocupacion(medico_id=1, fecha_inicio=(datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d"), fecha_fin=datetime.now().strftime("%Y-%m-%d"))
         
         # 5. Estadísticas adicionales
         self.mostrar_estadisticas_generales()
@@ -237,6 +273,65 @@ class ReportesService:
             print(f"\n🏆 Top 3 médicos más ocupados:")
             for i, item in enumerate(medicos_ocupados, 1):
                 print(f"   {i}. {item['medico'].nombre}: {item['citas_pendientes']} citas pendientes")
+
+        
+        if conteo_estados:
+            estados = list(conteo_estados.keys())
+            cantidades = list(conteo_estados.values())
+
+            plt.figure(figsize=(10, 5))
+            plt.bar(estados, cantidades, edgecolor='black')
+
+            plt.title("Distribución de Citas por Estado", fontsize=16, fontweight="bold")
+            plt.xlabel("Estado de la Cita", fontsize=12)
+            plt.ylabel("Cantidad", fontsize=12)
+            plt.grid(axis='y', alpha=0.3)
+
+            plt.tight_layout()
+            plt.show()
+
+    def reporte_medicos_mas_ocupados(self):
+        """Muestra los 3 médicos con más citas programadas y genera un gráfico de barras"""
+
+        # Obtener datos
+        medicos_ocupados = self.medico_service.obtener_medicos_mas_ocupados(limite=3)
+
+        print("\n" + "="*60)
+        print("🏆 REPORTE: MÉDICOS MÁS OCUPADOS (Solo citas programadas)")
+        print("="*60)
+
+        if not medicos_ocupados:
+            print("📭 No hay datos suficientes para generar el reporte.")
+            return
+
+        # Mostrar en texto
+        for i, item in enumerate(medicos_ocupados, 1):
+            medico = item["medico"]
+            citas_pendientes = item["citas_pendientes"]
+            print(f"{i}. 👨‍⚕️ {medico.nombre} — {citas_pendientes} citas programadas")
+
+        # ======================================
+        # 📊 GRÁFICO DE BARRAS — TOP 3 MÉDICOS
+        # ======================================
+
+        nombres = [item["medico"].nombre for item in medicos_ocupados]
+        cantidades = [item["citas_pendientes"] for item in medicos_ocupados]
+
+        df = pd.DataFrame({"Médico": nombres, "Citas Programadas": cantidades})
+
+        plt.figure(figsize=(12, 6))
+        plt.bar(df["Médico"], df["Citas Programadas"], color="skyblue", edgecolor="black")
+
+        plt.title("Top 3 Médicos con Más Citas Programadas", fontsize=16, fontweight="bold")
+        plt.xlabel("Médico", fontsize=12)
+        plt.ylabel("Cantidad de Citas Programadas", fontsize=12)
+        plt.grid(axis="y", alpha=0.3)
+
+        # Rotar nombres si son largos
+        plt.xticks(rotation=45, ha="right")
+
+        plt.tight_layout()
+        plt.show()
     
     def exportar_reporte_excel(self, nombre_archivo: str = "reporte_citas.xlsx"):
         """Exporta el reporte completo a Excel"""
@@ -254,7 +349,7 @@ class ReportesService:
                 # Hoja de resumen por médico
                 resumen_medico = df.groupby('Médico').size().reset_index()
                 resumen_medico.columns = ['Médico', 'Total_Citas']
-                resumen_medico.to_excel(writer, sheet_name='Resumen_Médicos', index=False)
+                resumen_medico.to_excel(writer, sheet_name='Resumen_Medicos', index=False)
                 
                 # Hoja de resumen por estado
                 resumen_estado = df.groupby('Estado').size().reset_index()
@@ -265,3 +360,4 @@ class ReportesService:
             
         except Exception as e:
             print(f"❌ Error al exportar reporte: {e}")
+            raise e  # 🚨 Esto permite que la UI muestre el messagebox

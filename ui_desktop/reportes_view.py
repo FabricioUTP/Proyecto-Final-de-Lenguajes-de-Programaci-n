@@ -52,8 +52,8 @@ class ReporteView(tk.Toplevel):
         ).pack(fill="x", pady=5)
 
         ttk.Button(
-            frame, text="🔢 Estadísticas Generales",
-            command=self.estadisticas_generales
+            frame, text="🔢 Top tres de medicos mas ocupados",
+            command=self.medicos_mas_ocupados
         ).pack(fill="x", pady=5)
 
         ttk.Button(
@@ -61,10 +61,12 @@ class ReporteView(tk.Toplevel):
             command=self.reporte_completo
         ).pack(fill="x", pady=5)
 
-        ttk.Button(
-            frame, text="📤 Exportar Reporte a Excel",
+        btn_exportar = ttk.Button(
+            frame,
+            text="📤 Exportar Reporte a Excel",
             command=self.exportar_excel
-        ).pack(fill="x", pady=5)
+        )
+        btn_exportar.pack(fill="x", pady=5)
 
         ttk.Button(
             self, text="❌ Cerrar", command=self.destroy
@@ -114,8 +116,13 @@ class ReporteView(tk.Toplevel):
         self.reportes_service.generar_reporte_citas_por_especialidad(mostrar_grafico=True)
 
     def reporte_ocupacion(self):
-        self.reportes_service.generar_reporte_ocupacion_medicos()
+        fecha_inicio = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+        fecha_fin = datetime.now().strftime("%Y-%m-%d")
 
+        self.reportes_service.calcular_porcentaje_ocupacion_todos(
+            fecha_inicio,
+            fecha_fin
+        )
 
     def reporte_tendencias(self):
         self.reportes_service.generar_reporte_tendencias_mensuales()
@@ -125,8 +132,14 @@ class ReporteView(tk.Toplevel):
 
     def reporte_completo(self):
         self.reportes_service.generar_reporte_completo()
+    
+    def medicos_mas_ocupados(self):
+        self.reportes_service.reporte_medicos_mas_ocupados()
 
     def exportar_excel(self):
-        nombre = "reporte_citas.xlsx"
-        self.reportes_service.exportar_reporte_excel(nombre)
-        messagebox.showinfo("Exportado", f"Archivo generado:\n{nombre}")
+        try:
+            nombre = "reporte_citas.xlsx"
+            self.reportes_service.exportar_reporte_excel(nombre)
+            messagebox.showinfo("Exportado", f"Archivo generado:\n{nombre}")
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo exportar el archivo:\n{e}")

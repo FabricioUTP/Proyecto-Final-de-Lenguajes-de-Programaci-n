@@ -108,3 +108,50 @@ class Cita:
         self.estado = "completada"
         return self.guardar(db)
     
+    @staticmethod
+    def obtener_por_medico(db: Database, medico_id: int) -> List['Cita']:
+        """Obtiene todas las citas asignadas a un médico usando su ID"""
+
+        query = """
+            SELECT c.*, p.nombre as paciente_nombre, m.nombre as medico_nombre, 
+                m.especialidad as medico_especialidad
+            FROM citas c
+            LEFT JOIN pacientes p ON c.paciente_id = p.id
+            LEFT JOIN medicos m ON c.medico_id = m.id
+            WHERE c.medico_id = %s
+            ORDER BY c.fecha_hora ASC
+        """
+        
+        resultados = db.execute_query(query, (medico_id,), fetch=True)
+
+        citas = []
+        if not resultados:
+            return citas
+
+        for resultado in resultados:
+            cita = Cita(
+                id=resultado['id'],
+                paciente_id=resultado['paciente_id'],
+                medico_id=resultado['medico_id'],
+                fecha_hora=resultado['fecha_hora'],
+                estado=resultado['estado'],
+                motivo=resultado['motivo']
+            )
+
+            # Cargar datos del paciente y médico (si existen)
+            cita.paciente = Paciente(
+                id=resultado['paciente_id'],
+                nombre=resultado.get('paciente_nombre', 'N/A')
+            )
+
+            cita.medico = Medico(
+                id=resultado['medico_id'],
+                nombre=resultado.get('medico_nombre', 'N/A'),
+                especialidad=resultado.get('medico_especialidad', 'N/A')
+            )
+
+            citas.append(cita)
+
+        return citas
+
+    

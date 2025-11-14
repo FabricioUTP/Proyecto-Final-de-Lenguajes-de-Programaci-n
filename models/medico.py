@@ -87,3 +87,14 @@ class Medico:
         """Elimina un médico por ID"""
         query = "DELETE FROM medicos WHERE id = %s"
         return db.execute_query(query, (id,)) is not None
+    
+    @staticmethod
+    def listar_todos(db):
+        """Retorna todos los médicos registrados"""
+        query = "SELECT * FROM medicos"
+        resultados = db.execute_query(query, fetch=True)
+        
+        if not resultados:
+            return []
+
+        return [Medico(**fila) for fila in resultados]
