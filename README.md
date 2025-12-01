@@ -103,6 +103,7 @@ Desarrollar un software que permita gestionar pacientes, médicos y citas médic
 | **matplotlib**         | Visualización gráfica de reportes.            |
 | **datetime**           | Manejo de fechas y horas de las citas.        |
 | **tabulate**           | Mostrar datos en formato tabular en consola.  |
+| **openpyxl**           | Permite crear/leer archivos Excel.            |
 
 ---
 

@@ -1,7 +1,7 @@
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',           
-    'password': 'anto2005',   
+    'password': 'admin',   
     'database': 'gestion_medica',
     'port': 3306
 }
