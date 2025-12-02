@@ -189,7 +189,19 @@ source venv/bin/activate
 ### Paso 3: Instalar Dependencias
 
 ```bash
-pip install -r requirements.txt
+pip install mysql-connector-python
+```
+```bash
+pip install matplotlib
+```
+```bash
+pip install pandas
+```
+```bash
+pip install tkcalendar
+```
+```bash
+pip install openpyxl
 ```
 
 ### Paso 4: Configurar Base de Datos MySQL
